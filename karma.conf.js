@@ -31,13 +31,21 @@ module.exports = function (config) {
       reporters: [
         { type: 'html' },
         { type: 'text-summary' }
-      ]
+      ],
+      check: {
+        global: {
+          statements: 30,
+          branches: 30,
+          funtions: 30,
+          lines: 30
+        }
+      }
     },
-    reporters: ['mocha','progress', 'kjhtml'],
+    reporters: ['mocha'],
     browsers: ['ChromeHeadless'],
     customLaunchers: {
       ChromeHeadlessCI: {
-        base: ChromeHeadless,
+        base: 'ChromeHeadless',
         flags: ['--no-sandbox']
       }
     },
