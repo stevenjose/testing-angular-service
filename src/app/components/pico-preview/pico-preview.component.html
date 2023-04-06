@@ -1,0 +1,9 @@
+<section class="container">
+  <h1>Featured Products</h1>
+  <div class="my-grid">
+    <figure *ngFor="let product of products$ | async ; let i = index">
+      <img [src]="product.images[0]" />
+      <figcaption>{{ product.title }} - Price <strong>{{ product.price }}$</strong></figcaption>
+    </figure>
+  </div>
+</section>

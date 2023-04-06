@@ -1,0 +1,22 @@
+.my-grid {
+  overflow: hidden;
+  display: flex;
+  height: 270px;
+  margin: 0 auto;
+}
+
+.my-grid figure {
+  height: 400px;
+  min-width: 300px;
+  margin-left: 100px;
+  animation: slide 70s linear infinite;
+}
+
+@keyframes slide {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-7500px, 0, 0); /* The image width */
+  }
+}
