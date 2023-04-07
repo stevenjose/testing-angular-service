@@ -2,13 +2,24 @@ import {TestBed} from "@angular/core/testing";
 import {ProductsService} from "./products.service";
 import {HttpClientTestingModule, HttpTestingController} from "@angular/common/http/testing";
 import {environment} from "../../environments/environment";
-import {Product} from "../models/product.model";
-import {ProductsComponent} from "../components/products/products.component";
+import {CreateProductDTO, Product, UpdateProductDTO} from "../models/product.model";
+import {of} from "rxjs";
+import {HttpStatusCode} from "@angular/common/http";
 
 describe('Product Service', () => {
   let productService: ProductsService;
   let httController: HttpTestingController;
-
+  const product: Product = {
+    id: "1",
+    title: 'iphone 15',
+    description: 'movil de nueva generacion',
+    price: 1500,
+    images: ['img1'],
+    category: {
+      id: 11,
+      name: 'moviles'
+    }
+  }
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
@@ -20,6 +31,10 @@ describe('Product Service', () => {
     });
     productService = TestBed.inject(ProductsService);
     httController = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(()=>{
+    httController.verify();
   });
 
   it('should created', function () {
@@ -53,7 +68,7 @@ describe('Product Service', () => {
     });
   })
 
-  describe('shold Product Service getAll', ()=>{
+  describe('shold getAll', () => {
     it('return Product getAll()', function () {
       const mockProduct: Product[] = [
         {
@@ -156,6 +171,149 @@ describe('Product Service', () => {
         .toBe(`${offset}`);
       httController.verify();
     });
-  })
+  });
 
-})
+  describe('should create', () => {
+    const dtoProduct: CreateProductDTO = {
+      title: 'iphone 15',
+      description: 'movil de nueva generacion',
+      price: 1500,
+      images: ['img1'],
+      categoryId: 1
+    };
+
+    it('should create product', function (doneFn) {
+      productService.create({...dtoProduct}).subscribe((req) => {
+        expect(req)
+          .toBe(product);
+        doneFn();
+      });
+
+      const req = httController.expectOne(`${environment.API_URL}/api/v1/products`);
+      // valor que devuelve el servicio cuando sea invocado
+      req.flush(product);
+      expect(req.request.method)
+        .toBe('POST');
+      expect(req.request.body)
+        .toEqual(dtoProduct);
+    });
+
+  });
+
+  describe('actulizar producto', ()=>{
+    it('should update()', function (donFn) {
+      const id = 1;
+      const update: UpdateProductDTO = {
+        description: 'update'
+      }
+      const productUpdate = {...product, description:'update'}
+      productService.fetchReadAndUpdate(`${id}`, update);
+      spyOn(productService,'fetchReadAndUpdate').and.returnValue(of([product, productUpdate]));
+      productService.fetchReadAndUpdate('1', update).subscribe((values, ) =>{
+        expect(values.length)
+          .toBe(2);
+        const {description} = update;
+        expect(values[1].description)
+          .toEqual(description ? description : '');
+        donFn();
+      });
+    });
+  });
+
+  describe('test delete', ()=> {
+    it('should delete id 1',
+      function (doneFN) {
+        const id = "1";
+        productService.delete(id).subscribe((req) => {
+          expect(req)
+            .toBeTrue();
+          doneFN();
+        });
+        const req = httController.expectOne(`${environment.API_URL}/api/v1/products/${id}`);
+        req.flush(true);
+        expect(req.request.method)
+          .toBe('DELETE');
+      });
+  });
+
+  describe('test getOne', ()=> {
+    it('should messague 404', function (doneFN) {
+      const productId = '1';
+      const msgError = 'El producto no existe';
+      const mockError = {
+        status: HttpStatusCode.NotFound,
+        statusText: msgError
+      }
+      productService.getOne(productId).subscribe({
+        error:(err)=>{
+          expect(err)
+            .toBe(msgError);
+          doneFN();
+        }
+      })
+      const req = httController.expectOne(`${environment.API_URL}/api/v1/products/${productId}`);
+      req.flush(msgError,mockError);
+      expect(req.request.method).toBe('GET');
+    });
+  });
+
+  it('should messague 401', function (doneFN) {
+    const productId = '1';
+    const msgError = 'No estas permitido';
+    const mockError = {
+      status: HttpStatusCode.Unauthorized,
+      statusText: msgError
+    }
+    productService.getOne(productId).subscribe({
+      error:(err)=>{
+        expect(err)
+          .toBe(msgError);
+        doneFN();
+      }
+    })
+    const req = httController.expectOne(`${environment.API_URL}/api/v1/products/${productId}`);
+    req.flush(msgError,mockError);
+    expect(req.request.method).toBe('GET');
+  });
+
+  it('should messague 409', function (doneFN) {
+    const productId = '1';
+    const msgError = 'Algo esta fallando en el server';
+    const mockError = {
+      status: HttpStatusCode.Conflict,
+      statusText: msgError
+    }
+    productService.getOne(productId).subscribe({
+      error:(err)=>{
+        expect(err)
+          .toBe(msgError);
+        doneFN();
+      }
+    })
+    const req = httController.expectOne(`${environment.API_URL}/api/v1/products/${productId}`);
+    req.flush(msgError,mockError);
+    expect(req.request.method).toBe('GET');
+  });
+
+  it('should messague 409', function (doneFN) {
+    const productId = '1';
+    const msgError = 'Ups algo salio mal';
+    const mockError = {
+      status: HttpStatusCode.BadGateway,
+      statusText: msgError
+    }
+    productService.getOne(productId).subscribe({
+      error:(err)=>{
+        expect(err)
+          .toBe(msgError);
+        doneFN();
+      }
+    })
+    const req = httController.expectOne(`${environment.API_URL}/api/v1/products/${productId}`);
+    req.flush(msgError,mockError);
+    expect(req.request.method).toBe('GET');
+  });
+
+
+});
+
