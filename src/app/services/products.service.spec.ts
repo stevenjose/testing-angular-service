@@ -4,7 +4,9 @@ import {HttpClientTestingModule, HttpTestingController} from "@angular/common/ht
 import {environment} from "../../environments/environment";
 import {CreateProductDTO, Product, UpdateProductDTO} from "../models/product.model";
 import {of} from "rxjs";
-import {HttpStatusCode} from "@angular/common/http";
+import {HTTP_INTERCEPTORS, HttpStatusCode} from "@angular/common/http";
+import {TokenInterceptor} from "../../interceptors/token.interceptor";
+import {TokenService} from "./token.service";
 
 describe('Product Service', () => {
   let productService: ProductsService;
@@ -20,10 +22,15 @@ describe('Product Service', () => {
       name: 'moviles'
     }
   }
+  let tokenService: TokenService;
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        ProductsService
+        ProductsService,
+        TokenService,
+        {
+          provide: HTTP_INTERCEPTORS, useClass: TokenInterceptor, multi: true
+        }
       ],
       imports: [
         HttpClientTestingModule
@@ -31,6 +38,7 @@ describe('Product Service', () => {
     });
     productService = TestBed.inject(ProductsService);
     httController = TestBed.inject(HttpTestingController);
+    tokenService = TestBed.inject(TokenService);
   });
 
   afterEach(()=>{
@@ -83,14 +91,17 @@ describe('Product Service', () => {
           images: ['img1'],
           description: 'calvin klain'
         }
-      ]
+      ];
+      spyOn(tokenService, 'getToken').and.returnValue('123');
       productService.getAll().subscribe((req: Product[]) => {
         expect(req[0].id).toBe(mockProduct[0].id);
       });
       const req = httController.expectOne(`${environment.API_URL}/api/v1/products`);
       req.flush(mockProduct);
-      expect(req.request.method).toBe('GET');
-      httController.verify();
+      expect(req.request.method)
+        .toBe('GET');
+      expect(req.request.headers.get('Authorization'))
+        .toEqual('Bearer 123');
     });
 
     it('return witch query params', function (donFn) {
@@ -200,7 +211,7 @@ describe('Product Service', () => {
 
   });
 
-  describe('actulizar producto', ()=>{
+  describe('actualizar producto', ()=>{
     it('should update()', function (donFn) {
       const id = 1;
       const update: UpdateProductDTO = {
